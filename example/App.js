@@ -18,6 +18,10 @@ export default class App extends Component<{}> {
     message: '--',
   };
   componentDidMount() {
+    fetch('https://reactnative.dev/movies.json').then((response) =>
+      console.log(response),
+    );
+
     MutualTLS.sampleMethod('Testing', 123, (message) => {
       this.setState({
         status: 'native callback received',

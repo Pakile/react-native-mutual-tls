@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "9.0" }
   s.source       = { :git => "https://github.com/github_account/react-native-mutual-tls.git", :tag => "#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,c,m,swift}"
+  s.source_files = "ios/**/*.{h,c,m,mm,swift}"
   s.requires_arc = true
 
   s.dependency "React"
