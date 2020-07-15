@@ -1,5 +1,5 @@
-import { NativeModules } from 'react-native';
+import { NativeModules } from "react-native";
 
-const { MutualTls } = NativeModules;
+const { MutualTLS } = NativeModules;
 
-export default MutualTls;
+export default MutualTLS;

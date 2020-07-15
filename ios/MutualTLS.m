@@ -1,6 +1,6 @@
-#import "MutualTls.h"
+#import "MutualTLS.h"
 
-@implementation MutualTls
+@implementation MutualTLS
 
 RCT_EXPORT_MODULE()
 

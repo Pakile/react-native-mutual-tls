@@ -13,8 +13,8 @@ npx pod-install
 
 ## Usage
 ```javascript
-import MutualTls from 'react-native-mutual-tls';
+import MutualTLS from 'react-native-mutual-tls';
 
 // TODO: What to do with the module?
-MutualTls;
+MutualTLS;
 ```

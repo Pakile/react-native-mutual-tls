@@ -8,27 +8,27 @@
  * https://github.com/facebook/react-native
  */
 
-import React, { Component } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import MutualTls from 'react-native-mutual-tls';
+import React, {Component} from 'react';
+import {Platform, StyleSheet, Text, View} from 'react-native';
+import MutualTLS from 'react-native-mutual-tls';
 
 export default class App extends Component<{}> {
   state = {
     status: 'starting',
-    message: '--'
+    message: '--',
   };
   componentDidMount() {
-    MutualTls.sampleMethod('Testing', 123, (message) => {
+    MutualTLS.sampleMethod('Testing', 123, (message) => {
       this.setState({
         status: 'native callback received',
-        message
+        message,
       });
     });
   }
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>☆MutualTls example☆</Text>
+        <Text style={styles.welcome}>☆MutualTLS example☆</Text>
         <Text style={styles.instructions}>STATUS: {this.state.status}</Text>
         <Text style={styles.welcome}>☆NATIVE CALLBACK MESSAGE☆</Text>
         <Text style={styles.instructions}>{this.state.message}</Text>
