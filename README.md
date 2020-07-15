@@ -1,12 +1,15 @@
 # react-native-mutual-tls
 
+Mutual TLS authentication for HTTP requests in React Native.
+
+Only iOS is supported at this time, but pull requests are welcome if anyone wants to help add support for Android.
+
 ## Getting started
 
-`$ npm install react-native-mutual-tls --save`
-
-### Mostly automatic installation
-
-`$ react-native link react-native-mutual-tls`
+```
+yarn add react-native-mutual-tls
+npx pod-install
+```
 
 ## Usage
 ```javascript
