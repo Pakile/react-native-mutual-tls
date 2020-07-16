@@ -203,7 +203,7 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
     NSData *p12Data = [NSData dataWithContentsOfFile:p12DataPath];
 
     SecIdentityRef identity = nil;
-    extractIdentity(p12Data, &identity);
+    fetchIdentityFromKeychain(&identity);
 
     NSURLCredential* credential = [NSURLCredential credentialWithIdentity:identity certificates:nil persistence:NSURLCredentialPersistenceNone];
     [[challenge sender] useCredential:credential forAuthenticationChallenge:challenge];
@@ -214,9 +214,18 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
 }
 
 // PATCH: This function was added to support loading a client certificate.
-OSStatus extractIdentity(NSData *p12Data, SecIdentityRef *identity)
+void fetchIdentityFromKeychain(SecIdentityRef *identity)
 {
-  NSString* password = @"badssl.com";
+  NSData *p12Data = [[NSData alloc]
+    initWithBase64EncodedString:fetchFromKeychain(@"client.p12")
+    options:NSDataBase64DecodingIgnoreUnknownCharacters
+  ];
+  if (!p12Data) {
+    // TODO: emit error event to react native
+    return;
+  }
+
+  NSString* password = fetchFromKeychain(@"client.p12.password");
   NSDictionary* options = @{ (id)kSecImportExportPassphrase : password };
 
   CFArrayRef rawItems = NULL;
@@ -234,7 +243,45 @@ OSStatus extractIdentity(NSData *p12Data, SecIdentityRef *identity)
       (SecIdentityRef)CFBridgingRetain(firstItem[(id)kSecImportItemIdentity]);
   }
 
-  return status;
+  return;
+}
+
+// PATCH: This function was added to support fetching secrets from the keychain.
+// The react-native-keychain library can be used to store these. See README.md
+NSString* fetchFromKeychain(NSString *service) {
+  NSDictionary *query = @{
+    (__bridge NSString *)kSecClass: (__bridge id)(kSecClassGenericPassword),
+    (__bridge NSString *)kSecAttrService: service,
+    (__bridge NSString *)kSecReturnAttributes: (__bridge id)kCFBooleanTrue,
+    (__bridge NSString *)kSecReturnData: (__bridge id)kCFBooleanTrue,
+    (__bridge NSString *)kSecMatchLimit: (__bridge NSString *)kSecMatchLimitOne,
+  };
+
+  NSDictionary *found = nil;
+  CFTypeRef foundTypeRef = NULL;
+  OSStatus osStatus = SecItemCopyMatching(
+    (__bridge CFDictionaryRef) query,
+    (CFTypeRef*)&foundTypeRef
+  );
+
+  if (osStatus != noErr && osStatus != errSecItemNotFound) {
+    // TODO: emit error event to react native
+    // NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
+    return @""; //rejectWithError(reject, error);
+  }
+
+  found = (__bridge NSDictionary*)(foundTypeRef);
+  if (!found) {
+    // TODO: emit error event to react native
+    return @""; //resolve(@(NO));
+  }
+
+  NSString *password = [[NSString alloc]
+    initWithData:[found objectForKey:(__bridge id)(kSecValueData)]
+    encoding:NSUTF8StringEncoding
+  ];
+
+  return password;
 }
 
 @end

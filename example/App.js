@@ -10,7 +10,45 @@
 
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View} from 'react-native';
+import RNFetchBlob from 'rn-fetch-blob';
+import * as Keychain from 'react-native-keychain';
 import MutualTLS from 'react-native-mutual-tls';
+
+// Download a p12 client certificate file from badssl.com, for testing.
+async function storeP12Data(service) {
+  const response = await RNFetchBlob.fetch(
+    'GET',
+    'https://badssl.com/certs/badssl.com-client.p12',
+  );
+  const data = response.base64();
+
+  await Keychain.setGenericPassword('', data, {service});
+}
+
+// Store the hard-coded password for the badssl.com test certificate file.
+async function storePassword(service) {
+  const password = 'badssl.com';
+
+  await Keychain.setGenericPassword('', password, {service});
+}
+
+// Demonstrate how to set up mutual auth credentials and fetch. using them.
+async function fetchExample() {
+  // Clear out any old/existing secrets, for testing accuracy.
+  await Promise.all([
+    Keychain.resetGenericPassword({service: 'client.p12'}),
+    Keychain.resetGenericPassword({service: 'client.p12.password'}),
+  ]);
+
+  // Store the secrets we'll use in the keychain.
+  await Promise.all([
+    storeP12Data('client.p12'),
+    storePassword('client.p12.password'),
+  ]);
+
+  // Perform a request to a server that requires the certificate.
+  return await fetch('https://client.badssl.com/');
+}
 
 export default class App extends Component<{}> {
   state = {
@@ -18,9 +56,12 @@ export default class App extends Component<{}> {
     message: '--',
   };
   componentDidMount() {
-    fetch('https://client.badssl.com/').then((response) => {
-      console.log(response);
-    });
+    fetchExample()
+      .then((response) => {
+        console.log(response.status);
+        console.log(response);
+      })
+      .catch(console.error);
 
     MutualTLS.sampleMethod('Testing', 123, (message) => {
       this.setState({
