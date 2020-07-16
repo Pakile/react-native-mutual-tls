@@ -191,6 +191,52 @@ didReceiveResponse:(NSURLResponse *)response
   [delegate URLRequest:task didCompleteWithError:error];
 }
 
+// PATCH: This delegate handler was added to support authentication challenges.
+- (void)URLSession:(NSURLSession *)session
+didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+ completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler
+{
+  if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate])
+  {
+    NSBundle* mainBundle = [NSBundle mainBundle];
+    NSString* p12DataPath = [mainBundle pathForResource:@"badssl.com-client" ofType:@"p12"];
+    NSData *p12Data = [NSData dataWithContentsOfFile:p12DataPath];
+
+    SecIdentityRef identity = nil;
+    extractIdentity(p12Data, &identity);
+
+    NSURLCredential* credential = [NSURLCredential credentialWithIdentity:identity certificates:nil persistence:NSURLCredentialPersistenceNone];
+    [[challenge sender] useCredential:credential forAuthenticationChallenge:challenge];
+    completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+  } else {
+    completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+  }
+}
+
+// PATCH: This function was added to support loading a client certificate.
+OSStatus extractIdentity(NSData *p12Data, SecIdentityRef *identity)
+{
+  NSString* password = @"badssl.com";
+  NSDictionary* options = @{ (id)kSecImportExportPassphrase : password };
+
+  CFArrayRef rawItems = NULL;
+  OSStatus status = SecPKCS12Import(
+    (__bridge CFDataRef)p12Data,
+    (__bridge CFDictionaryRef)options,
+    &rawItems
+  );
+
+  NSArray* items = (NSArray*)CFBridgingRelease(rawItems); // Transfer to ARC
+  NSDictionary* firstItem = nil;
+  if ((status == errSecSuccess) && ([items count]>0)) {
+    firstItem = items[0];
+    *identity =
+      (SecIdentityRef)CFBridgingRetain(firstItem[(id)kSecImportItemIdentity]);
+  }
+
+  return status;
+}
+
 @end
 
 Class MutualTLSHTTPRequestHandlerCls(void) {

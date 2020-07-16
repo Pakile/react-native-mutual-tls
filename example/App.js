@@ -18,9 +18,9 @@ export default class App extends Component<{}> {
     message: '--',
   };
   componentDidMount() {
-    fetch('https://reactnative.dev/movies.json').then((response) =>
-      console.log(response),
-    );
+    fetch('https://client.badssl.com/').then((response) => {
+      console.log(response);
+    });
 
     MutualTLS.sampleMethod('Testing', 123, (message) => {
       this.setState({
