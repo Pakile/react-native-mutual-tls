@@ -6,7 +6,7 @@ const MutualTLS = {
   onError: null, // place a function here to receive error messages
 };
 
-const native = NativeModules.MutualTLS;
+const { configure } = NativeModules.MutualTLS;
 
 const debug = new NativeEventEmitter(NativeModules.MutualTLSDebug);
 var debugSubscription = null;
@@ -27,6 +27,7 @@ export function onError(fn) {
 }
 
 export default {
+  configure,
   onDebug,
   onError,
 };

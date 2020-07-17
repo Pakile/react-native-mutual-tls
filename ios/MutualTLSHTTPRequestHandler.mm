@@ -16,6 +16,7 @@
 
 // PATCH: Changed imports as needed.
 #import "MutualTLSHTTPRequestHandler.h"
+#import "MutualTLSConfig.h"
 #import "MutualTLSDebug.h"
 #import "MutualTLSError.h"
 #import <mutex>
@@ -219,8 +220,9 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
 // PATCH: This function was added to support loading a client certificate.
 void fetchIdentityFromKeychain(SecIdentityRef *identity)
 {
-  NSString* keychainServiceForP12 = @"client.p12";
-  NSString* keychainServiceForPassword = @"client.p12.password";
+  MutualTLSConfig* config = [MutualTLSConfig global];
+  NSString* keychainServiceForP12 = [config keychainServiceForP12];
+  NSString* keychainServiceForPassword = [config keychainServiceForPassword];
 
   NSString* p12Base64 = fetchFromKeychain(keychainServiceForP12);
   if (!p12Base64)

@@ -38,17 +38,23 @@ async function fullExample() {
   // These events come asynchronously during request handling.
   MutualTLS.onDebug(console.debug);
   MutualTLS.onError(console.error);
+  await MutualTLS.configure({
+    keychainServiceForP12: 'my-tls.client.p12',
+    keychainServiceForPassword: 'my-tls.client.p12.password',
+  });
 
   // Clear out any old/existing secrets, for testing accuracy.
   await Promise.all([
-    Keychain.resetGenericPassword({service: 'client.p12'}),
-    Keychain.resetGenericPassword({service: 'client.p12.password'}),
+    Keychain.resetGenericPassword({service: 'my-tls.client.p12'}),
+    Keychain.resetGenericPassword({
+      service: 'my-tls.client.p12.password',
+    }),
   ]);
 
   // Store the secrets we'll use in the keychain.
   await Promise.all([
-    storeP12Data('client.p12'),
-    storePassword('client.p12.password'),
+    storeP12Data('my-tls.client.p12'),
+    storePassword('my-tls.client.p12.password'),
   ]);
 
   // Perform a request to a server that requires the certificate.
