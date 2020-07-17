@@ -202,8 +202,15 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
   if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate])
   {
     [MutualTLSDebug
-      log: @"starting to fulfill authentication challenge"
-      withData: @{}
+      log: @"starting to fulfill client certificate challenge"
+      withData: @{
+        @"protectionSpace": @{
+          @"host": stringOrEmpty(challenge.protectionSpace.host),
+          @"port": @(challenge.protectionSpace.port),
+          @"protocol": stringOrEmpty(challenge.protectionSpace.protocol),
+          @"realm": stringOrEmpty(challenge.protectionSpace.realm),
+        },
+      }
     ];
 
     SecIdentityRef identity = nil;
@@ -332,6 +339,11 @@ NSString* osStatusDescription(OSStatus code) {
     [NSError errorWithDomain:NSOSStatusErrorDomain code:code userInfo:nil]
     localizedDescription
   ];
+}
+
+// PATCH: This convenience function was added to help safely print strings.
+NSString* stringOrEmpty(NSString* string) {
+  return string ? string : @"";
 }
 
 @end
