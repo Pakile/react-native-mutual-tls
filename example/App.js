@@ -8,10 +8,10 @@
  * https://github.com/facebook/react-native
  */
 
-import React, {Component} from 'react';
-import {Platform, StyleSheet, Text, View} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
 import RNFetchBlob from 'rn-fetch-blob';
-import * as Keychain from 'react-native-keychain';
+import Keychain from 'react-native-keychain';
 import MutualTLS from 'react-native-mutual-tls';
 
 // Download a p12 client certificate file from badssl.com, for testing.
@@ -66,28 +66,41 @@ async function fullExample() {
   return response;
 }
 
-export default class App extends Component<{}> {
-  state = {
-    status: 'starting',
-    message: '--',
-  };
-  componentDidMount() {
+export default function App() {
+  const [response, setResponse] = useState(null);
+  const [timestamp, setTimestamp] = useState(null);
+
+  const backgroundColor = response
+    ? response.status < 300
+      ? 'green'
+      : 'red'
+    : 'white';
+
+  useEffect(() => {
+    var cancelled = false;
+
     fullExample()
       .then((response) => {
-        console.log(response);
+        if (cancelled) return;
+        setResponse(response);
+        setTimestamp(new Date().toLocaleTimeString());
       })
       .catch(console.error);
-  }
-  render() {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>☆MutualTLS example☆</Text>
-        <Text style={styles.instructions}>STATUS: {this.state.status}</Text>
-        <Text style={styles.welcome}>☆NATIVE CALLBACK MESSAGE☆</Text>
-        <Text style={styles.instructions}>{this.state.message}</Text>
-      </View>
-    );
-  }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <View style={[styles.container, {backgroundColor}]}>
+      <Text style={styles.welcome}>☆MutualTLS example☆</Text>
+      <Text style={styles.instructions}>
+        RESPONSE CODE: {response ? response.status : 'NONE YET'}
+      </Text>
+      <Text style={styles.instructions}>LAST TIMESTAMP: {timestamp}</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
