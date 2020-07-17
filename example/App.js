@@ -33,7 +33,12 @@ async function storePassword(service) {
 }
 
 // Demonstrate how to set up mutual auth credentials and fetch. using them.
-async function fetchExample() {
+async function fullExample() {
+  // Set up debug and error logging to the console.
+  // These events come asynchronously during request handling.
+  MutualTLS.onDebug(console.debug);
+  MutualTLS.onError(console.error);
+
   // Clear out any old/existing secrets, for testing accuracy.
   await Promise.all([
     Keychain.resetGenericPassword({service: 'client.p12'}),
@@ -47,7 +52,12 @@ async function fetchExample() {
   ]);
 
   // Perform a request to a server that requires the certificate.
-  return await fetch('https://client.badssl.com/');
+  const response = await fetch('https://client.badssl.com/');
+  if (response.status >= 300)
+    console.error(`${response.status}`, await response.text());
+  else console.log(`Request completed: ${response.status}`);
+
+  return response;
 }
 
 export default class App extends Component<{}> {
@@ -56,19 +66,11 @@ export default class App extends Component<{}> {
     message: '--',
   };
   componentDidMount() {
-    fetchExample()
+    fullExample()
       .then((response) => {
-        console.log(response.status);
         console.log(response);
       })
       .catch(console.error);
-
-    MutualTLS.sampleMethod('Testing', 123, (message) => {
-      this.setState({
-        status: 'native callback received',
-        message,
-      });
-    });
   }
   render() {
     return (

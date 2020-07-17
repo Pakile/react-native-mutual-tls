@@ -16,6 +16,8 @@
 
 // PATCH: Changed imports as needed.
 #import "MutualTLSHTTPRequestHandler.h"
+#import "MutualTLSDebug.h"
+#import "MutualTLSError.h"
 #import <mutex>
 #import <React/RCTHTTPRequestHandler.h>
 #import <React/RCTNetworking.h>
@@ -198,9 +200,10 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
 {
   if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodClientCertificate])
   {
-    NSBundle* mainBundle = [NSBundle mainBundle];
-    NSString* p12DataPath = [mainBundle pathForResource:@"badssl.com-client" ofType:@"p12"];
-    NSData *p12Data = [NSData dataWithContentsOfFile:p12DataPath];
+    [MutualTLSDebug
+      log: @"starting to fulfill authentication challenge"
+      withData: @{}
+    ];
 
     SecIdentityRef identity = nil;
     fetchIdentityFromKeychain(&identity);
@@ -216,20 +219,35 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
 // PATCH: This function was added to support loading a client certificate.
 void fetchIdentityFromKeychain(SecIdentityRef *identity)
 {
+  NSString* keychainServiceForP12 = @"client.p12";
+  NSString* keychainServiceForPassword = @"client.p12.password";
+
+  NSString* p12Base64 = fetchFromKeychain(keychainServiceForP12);
+  if (!p12Base64)
+    return;
+
   NSData *p12Data = [[NSData alloc]
-    initWithBase64EncodedString:fetchFromKeychain(@"client.p12")
-    options:NSDataBase64DecodingIgnoreUnknownCharacters
+    initWithBase64EncodedString: p12Base64
+    options: NSDataBase64DecodingIgnoreUnknownCharacters
   ];
   if (!p12Data) {
-    // TODO: emit error event to react native
+    [MutualTLSError
+      log: @"failed to base64-decode the p12 client certificate file data"
+      withData: @{
+        @"keychainServiceForP12": keychainServiceForP12,
+        @"p12Base64": p12Base64,
+      }
+    ];
     return;
   }
 
-  NSString* password = fetchFromKeychain(@"client.p12.password");
-  NSDictionary* options = @{ (id)kSecImportExportPassphrase : password };
+  NSString* password = fetchFromKeychain(keychainServiceForPassword);
+  if (!password)
+    return;
 
+  NSDictionary* options = @{(id)kSecImportExportPassphrase: password};
   CFArrayRef rawItems = NULL;
-  OSStatus status = SecPKCS12Import(
+  OSStatus osStatus = SecPKCS12Import(
     (__bridge CFDataRef)p12Data,
     (__bridge CFDictionaryRef)options,
     &rawItems
@@ -237,10 +255,20 @@ void fetchIdentityFromKeychain(SecIdentityRef *identity)
 
   NSArray* items = (NSArray*)CFBridgingRelease(rawItems); // Transfer to ARC
   NSDictionary* firstItem = nil;
-  if ((status == errSecSuccess) && ([items count]>0)) {
+  if ((osStatus == errSecSuccess) && ([items count]>0)) {
     firstItem = items[0];
     *identity =
       (SecIdentityRef)CFBridgingRetain(firstItem[(id)kSecImportItemIdentity]);
+  } else {
+    [MutualTLSError
+      log: @"failed to extra the p12 data using the specified password"
+      withData: @{
+        @"keychainServiceForP12": keychainServiceForP12,
+        @"keychainServiceForPassword": keychainServiceForPassword,
+        @"itemsCount": @([items count]),
+        @"osStatus": osStatusDescription(osStatus),
+      }
+    ];
   }
 
   return;
@@ -265,23 +293,43 @@ NSString* fetchFromKeychain(NSString *service) {
   );
 
   if (osStatus != noErr && osStatus != errSecItemNotFound) {
-    // TODO: emit error event to react native
-    // NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    return @""; //rejectWithError(reject, error);
+    [MutualTLSError
+      log: @"failed to look up the specified keychain item"
+      withData: @{
+        @"keychainType": @"kSecClassGenericPassword",
+        @"keychainService": service,
+        @"osStatus": osStatusDescription(osStatus),
+      }
+    ];
+    return nil;
   }
 
   found = (__bridge NSDictionary*)(foundTypeRef);
   if (!found) {
-    // TODO: emit error event to react native
-    return @""; //resolve(@(NO));
+    [MutualTLSError
+      log: @"did not find the specified keychain item"
+      withData: @{
+        @"keychainType": @"kSecClassGenericPassword",
+        @"keychainService": service,
+        @"osStatus": osStatusDescription(osStatus),
+      }
+    ];
+    return nil;
   }
 
   NSString *password = [[NSString alloc]
     initWithData:[found objectForKey:(__bridge id)(kSecValueData)]
     encoding:NSUTF8StringEncoding
   ];
-
   return password;
+}
+
+// PATCH: This convenience function was added to help describe an OSStatus.
+NSString* osStatusDescription(OSStatus code) {
+  return [
+    [NSError errorWithDomain:NSOSStatusErrorDomain code:code userInfo:nil]
+    localizedDescription
+  ];
 }
 
 @end
