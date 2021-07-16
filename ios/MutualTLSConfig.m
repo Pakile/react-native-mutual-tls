@@ -4,6 +4,7 @@
 
 @synthesize keychainServiceForP12;
 @synthesize keychainServiceForPassword;
+@synthesize insecureDisableVerifyServerInRootDomain;
 
 #pragma mark Singleton Methods
 
@@ -20,6 +21,7 @@
   if (self = [super init]) {
     keychainServiceForP12 = [[NSString alloc] initWithString:@"mutual-tls.client.p12"];
     keychainServiceForPassword = [[NSString alloc] initWithString:@"mutual-tls.client.p12.password"];
+    insecureDisableVerifyServerInRootDomain = [[NSString alloc] initWithString:@""];
   }
   return self;
 }

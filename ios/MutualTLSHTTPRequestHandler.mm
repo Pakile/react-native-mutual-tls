@@ -219,8 +219,20 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
     NSURLCredential* credential = [NSURLCredential credentialWithIdentity:identity certificates:nil persistence:NSURLCredentialPersistenceNone];
     [[challenge sender] useCredential:credential forAuthenticationChallenge:challenge];
     completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
-  } else {
-    completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+  } else if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
+    MutualTLSConfig* config = [MutualTLSConfig global];
+    if (
+      ![config.insecureDisableVerifyServerInRootDomain isEqualToString:@""] &&
+      [challenge.protectionSpace.host hasSuffix:config.insecureDisableVerifyServerInRootDomain])
+    {
+      // This server matches a configured root domain which we want to insecurely trust,
+      // Which means we trust the server regardless of what certificate it has presented.
+      // This is useful for connecting to the server via a non-determinate proxy, such as ngrok, during testing.
+      // Obviously, this should not be used in a production app.
+      completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust]);
+    } else {
+      completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+    }
   }
 }
 

@@ -66,6 +66,8 @@ If you do not call `MutualTLS.configure`, then the following defaults are used:
 - `keychainServiceForP12`: `mutual-tls.client.p12`
 - `keychainServiceForPassword`: `mutual-tls.client.p12.password`
 
+If you're using `MutualTLS` in a test environment with a proxied connection where the server name does not match the server name in the server certificate, you can also set the `insecureDisableVerifyServerInRootDomain` option to the root domain for which you want to insecurely trust all subdomains. For example, setting it to `example.com` would let you insecurely trust servers at a domain like `bad.example.com`. _DO NOT USE THIS SETTING IN A PRODUCTION ENVIRONMENT_, as it defeats server authentication security features which form the other half of the "mutual" part of Mutual TLS.
+
 ```javascript
 // Use the same service names that were used in `Keychain.setGenericPassword`
 await MutualTLS.configure({

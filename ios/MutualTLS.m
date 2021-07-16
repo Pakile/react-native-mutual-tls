@@ -31,6 +31,15 @@ RCT_EXPORT_METHOD(configure:(NSDictionary *)options
     ];
   }
 
+  NSString* insecureDisableVerifyServerInRootDomain = [options objectForKey:@"insecureDisableVerifyServerInRootDomain"];
+  if(insecureDisableVerifyServerInRootDomain && [insecureDisableVerifyServerInRootDomain isKindOfClass:[NSString class]]) {
+    [config setInsecureDisableVerifyServerInRootDomain:insecureDisableVerifyServerInRootDomain];
+    [MutualTLSDebug
+      log:@"configured setting"
+      withData:@{@"insecureDisableVerifyServerInRootDomain":insecureDisableVerifyServerInRootDomain}
+    ];
+  }
+
   resolve(nil);
 }
 
